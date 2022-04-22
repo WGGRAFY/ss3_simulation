@@ -6,13 +6,13 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
                             retro_params = NULL, data_params = NULL, weight_comps_params = NULL,
                             user_recdevs = NULL, user_recdevs_warn = TRUE,
                             bias_adjust = FALSE, hess_always = FALSE,
-                            print_logfile = TRUE, sleep = 0, seed = 21, skip_em=FALSE, 
+                            print_logfile = TRUE, sleep = 0, seed = 21, skip_em=FALSE,
                             ...) {
-  
+
   # In case ss3sim_base is stopped before finishing:
   old_wd <- getwd()
   on.exit(setwd(old_wd), add = TRUE)
-  
+
   # TODO maybe: manipulate the OM for each scenario ONLY; this can't be done
   # in parallel, but may be faster than doing OM model runs for each
   # scenario in parallel (test this). Then, once the OM is created, it can
@@ -23,7 +23,7 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
   }
   stopifnot(length(scenarios) == 1)
   sc <- scenarios
-  
+
   if(!is.null(user_recdevs)) {
     stopifnot(class(user_recdevs) %in% c("matrix", "data.frame", "array"))
     if(ncol(user_recdevs) < max(iterations)) {
@@ -36,7 +36,7 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
   }
   for(i in iterations) {
     # todo: fix spacing, organize comments
-    
+
     # Create folders, copy models, check for necessary files, rename
     # files for consistency
     iteration_existed <- copy_ss3models(model_dir = om_dir, scenarios = sc,
@@ -46,9 +46,9 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
                                         iterations = i, type = "em")
     pathom <- file.path(sc, i, "om")
     pathem <- file.path(sc, i, "em")
-    
+
     # Make the OM as specified by the user -----------------------------------
-    
+
     # Change the control file if using time varying
     if(!is.null(tv_params)) {
       # Change time-varying parameters; e.g. M, selectivity, growth...
@@ -80,10 +80,10 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
     }
       sc_i_recdevs <- user_recdevs[, i] # user specified recdevs
     }
-    
+
     # Find number of years in OM to change recdevs and F
     datfile.orig <- SS_readdat(file.path(sc, i, "om", "ss3.dat"),
-                               version = NULL, verbose = FALSE)
+                                verbose = TRUE)
     forfile.orig <- SS_readforecast(file.path(sc, i, "om", "forecast.ss"),
                                     verbose = FALSE)
     xyears <- seq(datfile.orig[["styr"]],
@@ -92,17 +92,17 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
     change_rec_devs(recdevs      = sc_i_recdevs,
                     ctl_file_in  = file.path(sc, i, "om", "om.ctl"),
                     ctl_file_out = file.path(sc, i, "om", "om.ctl"))
-    
+
     ctlom <- r4ss::SS_readctl(file = file.path(sc,i, "om", "om.ctl"),
                               use_datlist = TRUE, datlist = datfile.orig,
                               verbose = FALSE, echoall = FALSE)
     ctlom <- do.call(change_f, c(f_params, ctl_list = list(ctlom)))
-    
+
     # Change the data structure in the OM to produce the expected
     # values we want. This sets up the 'dummy' bins before we run
     # the OM one last time. Then we'll sample from the expected values
     # with error.
-    
+
     ## This returns a superset of all years/fleets/data types needed to
     ## do non-catch and -index sampling.
     # todo: think aboout removing calculate_data_units
@@ -113,7 +113,7 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
       calcomp_params  = calcomp_params,
       mlacomp_params  = mlacomp_params,
       wtatage_params  = wtatage_params)
-    
+
     datfile.modified <- datfile.orig
     ## OM: index
     # todo: find a better way to check if seas exists
@@ -149,7 +149,7 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
                                                     )
       )
     }
-    
+
     # check qs are correct.
     qtasks <- check_q(ctl_list = ctlom, Nfleets = datfile.orig$Nfleets,
                       desiredfleets = index_params$fleets)
@@ -157,7 +157,7 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
                       overwrite = TRUE,
                       ctl_list = ctlom, dat_list = datfile.modified,
                       ctl_file_out = file.path(sc,i, "om", "om.ctl"))
-    
+
     ## OM: change bins
     # todo: do this for mean size at age
     fixlist <- function(local) {
@@ -194,10 +194,10 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
       datfile.modified[["lbin_vector"]] <- data_params[["len_bins"]]
       datfile.modified[["N_lbins"]] <- length(datfile.modified[["lbin_vector"]])
     }
-    
+
     datfile.modified <- change_catch(dat_list = datfile.modified,
                                      ctl_list = ctlom)
-    
+
     ## OM: composition data
     if (!is.null(agecomp_params)) {
       datfile.modified <- change_comp(dat_list = datfile.modified,
@@ -250,7 +250,7 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
                       outfile = file.path(sc, i, "om", "ss3.dat"),
                       version = datfile.modified$ReadVersion,
                       overwrite = TRUE, verbose = FALSE)
-    
+
     # Run the operating model and copy the dat file over
     run_ss3model(dir = pathom, ...)
     if(!file.exists(file.path(sc, i, "om", "data.ss_new")))
@@ -275,7 +275,7 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
     # todo: use expdata rather than reading in the file again
     dat_list <- SS_readdat(file.path(sc, i, "em", "ss3.dat"),
                            version = NULL, verbose = FALSE)
-    
+
     ## Sample catches
     dat_list <- sample_catch(dat_list = dat_list)
     ## Survey biomass index
@@ -285,7 +285,7 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
     if (!is.null(discard_params)) {
       dat_list <- do.call("sample_discard", c(dat_list = list(dat_list), discard_params))
     }
-    
+
     ## Add error in the length comp data
     if(!is.null(lcomp_params$fleets)){
       dat_list <- do.call("sample_lcomp", c(list(dat_list), lcomp_params))
@@ -293,14 +293,14 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
     } else {
       lcomps_sampled <- FALSE # needed for calcomps, if using
     }
-    
+
     ## Add error in the age comp data. Need to do this last since other
     ## sampling functions rely on the age data. Also, if user doesn't
     ## call this function we need to delete the data
     if(!is.null(agecomp_params$fleets)){
       dat_list <- do.call("sample_agecomp", c(list(dat_list), agecomp_params))
     }
-    
+
     ## Add error in the empirical weight-at-age comp data. Note that if
     ## arguments are passed to this function it's functionality is turned
     ## on by setting the wtatage switch to 1. If it's off SS will just
@@ -326,7 +326,7 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
           wtatage_params))
       }
     }
-    
+
     ## Add error in the mean length-at-age comp data. This sampling
     ## function needs full age data so needs to be done before that
     ## sampling function is called. Also, if this function isn't called
@@ -340,7 +340,7 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
                                               mean_outfile   = file.path(sc, i, "em",
                                                                          paste0(mlacomp_params$mean_outfile, ".csv"))))
     }
-    
+
     ## Add error in the conditional age at length comp data. The
     ## cal data are independent of the marginal agecomp and length comp data
     ## in the SS 3.30 implementation.New length comp data is created
@@ -352,7 +352,7 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
         exp_vals_list = list(expdata),
         calcomp_params))
     }
-    
+
     ## End of manipulating the data file (except for rebinning), so clean it
     dat_list <- clean_data(dat_list      = dat_list,
                            lcomp_params   = lcomp_params,
@@ -360,9 +360,9 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
                            calcomp_params = calcomp_params,
                            mlacomp_params = mlacomp_params,
                            verbose        = FALSE)
-    
+
     # Make EM as specified by user -------------------------------------------
-    
+
       ## Manipulate EM starter file for a possible retrospective analysis
       if(!is.null(retro_params)) {
         do.call("change_retro", c(
@@ -370,7 +370,7 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
           str_file_out = file.path(sc, i, "em", "starter.ss"),
           retro_params))
       }
-      
+
       ## Now change the binning structure in the EM ss3.dat file as needed
       if (!is.null(em_binning_params)) {
         em_binning_params <- fixlist(em_binning_params)
@@ -380,7 +380,7 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
           em_binning_params))
       }
       # Manipulate EM control file to adjust what gets estimated
-      
+
       if(!is.null(estim_params)) {
         wd <- getwd()
         setwd(pathem)
@@ -392,7 +392,7 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
           estim_params))
         setwd(wd)
       }
-      
+
       # check q EM values are correct.
       ctlem <- r4ss::SS_readctl(file = file.path(sc,i, "em", "em.ctl"),
                                 use_datlist = TRUE, datlist = datfile.orig,
@@ -502,13 +502,13 @@ ss3sim_base_new <- function(iterations, scenarios, f_params,
       print(sc_i_recdevs)
       cat("\n\n# With sigma r of\n")
       print(sigmar)
-      
+
       sink()
     }
-    
+
     #  Pause to reduce average CPUE use?
     Sys.sleep(sleep)
-    
+
   } # end iterations
   return(scenarios)
 }
