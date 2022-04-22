@@ -125,44 +125,79 @@ make_data_in <- function(tv_k = "0",
   return(df)
 }
 
-turn_ss_out_to_data <- function(em_dat, flt = 1){
+turn_ss_out_to_data <- function(em_dat, flt = 1) {
   len_matrix <- em_dat$lencomp
   #Multiply length comp by Nsamp and split into fleets
   len_mult_flt <- len_matrix %>%
-    mutate(across(.cols = l20:l152,~.x*Nsamp)) %>%
+    mutate(across(.cols = l20:l152, ~.x * Nsamp)) %>%
     split(len_matrix$FltSvy)
 
   #Remove marginal age comps
   caal_matrix <- em_dat$agecomp %>%
     filter(Lbin_lo != (-1))
-
+  ages <- 1:25
   #Get CAAL by age
   caal_matrix_flt <- split(caal_matrix, caal_matrix$FltSvy)
   out_tibble <- NULL
-   for(i in len_mult[[flt]]$Yr){
-     #there are two conflicting rows being written, bug in ss3sim? the first one seems right
-     lenrow <- filter(len_mult[[flt]], Yr==i)[1,]
-     caalrows <- filter(caal_matrix_flt[[flt]], Yr==i)
+  n_a_l_tibble <- NULL
 
-     #len bin column regex
-    regmatches<- grep("^[l0-9]",names(lenrow))
+   for (i in len_mult_flt[[flt]]$Yr) {
+
+     #there are two conflicting rows being written, bug in ss3sim? 
+     #the first one seems right
+     lenrow <- filter(len_mult_flt[[flt]], Yr == i)[1, ]
+     caalrows <- filter(caal_matrix_flt[[flt]], Yr == i)
+
+     #these are the columns with the length comps
+    regmatches <- grep("^[l0-9]", names(lenrow))
 
      #fill missing bins with 0
 
        #get all bins
-       lbins <- gsub("l","",names(lenrow)[regmatches])
+       lbins <- gsub("l", "", names(lenrow)[regmatches])
        full_bins <- expand_grid(lbins = as.integer(lbins))
-       full_matches<- left_join(full_bins, caalrows, by=c("lbins"="Lbin_lo"), keep = TRUE) %>%
-         select(starts_with("a", ignore.case=FALSE)) %>%
-         mutate(across(everything(),replace_na,0))
-       full_matches$lencomp <- t(lenrow[regmatches])
 
-       #This matrix is p age length with age as columns and length bins as rows
-      p_age_length <- full_matches %>% mutate(across(starts_with("a")),.*lencomp)
-      p_age_length$length <- full_bins
-      p_age_length$Yr <- i
-      p_age_length <- p_age_length[,c("Yr","length","lencomp",paste0("a",1:25))]
-      out_tibble <- bind_rows(out_tibble, p_age_length)
+              #This matrix is p age length with age as columns and length bins
+       # as rows
+       full_matches <- left_join(full_bins, caalrows,
+       by = c("lbins" = "Lbin_lo"), keep = TRUE) %>%
+         select(starts_with("a", ignore.case = FALSE)) %>%
+         mutate(across(everything(), replace_na, 0))
+        
+       full_matches$lencomp <- unname(t(lenrow[regmatches]))
+ 
+       #This matrix is number at age length with age as columns and length bins
+       # as rows
+      n_age_length <- full_matches %>%
+      mutate(across(starts_with("a")), . * lencomp)
+      n_age_length$length <- full_bins
+      n_age_length$Yr <- i
+      n_age_length <- n_age_length[,c("Yr", "length", "lencomp",
+        paste0("a", ages))]
+      n_a_l_tibble <- bind_rows(n_a_l_tibble, n_age_length)
+
+      #To turn this into l*a obs, have to make a fish for each N
+       
+       #These are the rows of n_age_length for year i and fleet flt
+       #that have a fish with the given age and size
+      age_size_with_data <- n_age_length %>%
+       filter(if_any(starts_with("a"), ~ . > 0.5)) 
+
+       for (r in 1:nrow(age_size_with_data)){
+         ages_with_fish <- which(select(age_size_with_data[r,],
+         starts_with("a")) > 0.5)
+          for (a in ages_with_fish) {
+            addrow <- tibble(year = i, age = a, 
+            length = age_size_with_data[r, "length"])
+            #this is the number of fish of age a in year i of length
+
+            nfish <- as.integer(round(age_size_with_data[r, paste0("a", a)]))
+            for (k in 1:nfish) {
+              out_tibble <- bind_rows(out_tibble, addrow)
+            }
+       }
+   }
+   out_tibble$flt <- flt
    }
 
 

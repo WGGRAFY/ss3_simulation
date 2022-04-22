@@ -4,7 +4,8 @@ remotes::install_github("r4ss/r4ss", ref = "development")
 require(r4ss)
 require(here)
 remotes::install_github("ss3sim/ss3sim",
-                        ref = "noest", build_vignettes = TRUE, dependencies = TRUE)
+                        ref = "noest", build_vignettes = TRUE,
+                        dependencies = TRUE)
 devtools::load_all(paste0(substr(here(), 1, 15), "ss3sim"))
 require(ss3sim)
 require(purrr)
@@ -56,11 +57,10 @@ ss3sim_dir <- paste0(substr(here(), 1, 32), "ss3sim")
     for (j in seq_len(length(arg_list))) {
       arg_list[[j]]$em_dir <- NA
     }
-    # arg_list <- setup_scenarios(setup_scenarios_defaults())
-
     # Remove the ss3sim_base
 
     tryCatch({
+      unlink(df[, "scenarios"], recursive = TRUE)
       out <- lapply(arg_list, function(x) {
       do.call("ss3sim_base", c(x, list(iterations = iterations)))
     })
@@ -73,13 +73,16 @@ ss3sim_dir <- paste0(substr(here(), 1, 32), "ss3sim")
     r_om <- r4ss::SS_output(here(output_path, "om"),
                             verbose = FALSE, printstats = FALSE, covar = FALSE)
     #Compare output EM
-    r_em <- r4ss::SS_readdat(file.path(output_path, "em", "ss3.dat"),
+    r_em <- r4ss::SS_readdat(here(output_path, "em", "ss3.dat"),
                             verbose = FALSE)
     r4ss::SS_plots(r_om)
 
     #EM data file has the simulated comps we need
-    em_dat<- r4ss::SS_readdat_3.30(here(output_path,"em/ss3.dat"))
+    em_dat <- r4ss::SS_readdat_3.30(here(output_path, "em/ss3.dat"))
 
     #Function to turn length comps and CAAL comps to samples
-    Length_sims_1 <- turn_ss_out_to_data(em_dat, flt=1)
+    Length_sims_1 <- turn_ss_out_to_data(em_dat, flt = 1)
+    Length_sims_2 <- turn_ss_out_to_data(em_dat, flt = 2)
+
+
 
