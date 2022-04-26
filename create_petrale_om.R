@@ -84,5 +84,10 @@ ss3sim_dir <- paste0(substr(here(), 1, 32), "ss3sim")
     Length_sims_1 <- turn_ss_out_to_data(em_dat, flt = 1)
     Length_sims_2 <- turn_ss_out_to_data(em_dat, flt = 2)
 
+    # slightly modified version (much shortened)
+        Length_sims_1 <- turn_ss_out_to_data_beta(em_dat, flt = 1)
+
+
+    ggplot(Length_sims_1, aes(x=Age, y=Lbin_lo)) + facet_wrap(.~Yr) + geom_point() + theme_bw()
 
 

@@ -125,6 +125,22 @@ make_data_in <- function(tv_k = "0",
   return(df)
 }
 
+turn_ss_out_to_data_beta <- function(em_dat, flt = 1) {
+
+  #Remove marginal age comps
+  caal_matrix <- em_dat$agecomp %>%
+    filter(Lbin_lo != (-1))
+  ages <- 1:25
+  #Get CAAL by age
+  caal_matrix_flt <- split(caal_matrix, caal_matrix$FltSvy)
+
+  out <- caal_matrix_flt[[flt]] %>% pivot_longer(data=., cols=10:ncol(asd), names_to="Age", names_prefix = "a", values_to = "frequency") %>%
+    filter(frequency>0) %>% uncount(frequency) %>% mutate(Age = as.numeric(Age))
+
+  return(out)
+}
+
+
 turn_ss_out_to_data <- function(em_dat, flt = 1) {
   len_matrix <- em_dat$lencomp
   #Multiply length comp by Nsamp and split into fleets
@@ -143,7 +159,7 @@ turn_ss_out_to_data <- function(em_dat, flt = 1) {
 
    for (i in len_mult_flt[[flt]]$Yr) {
 
-     #there are two conflicting rows being written, bug in ss3sim? 
+     #there are two conflicting rows being written, bug in ss3sim?
      #the first one seems right
      lenrow <- filter(len_mult_flt[[flt]], Yr == i)[1, ]
      caalrows <- filter(caal_matrix_flt[[flt]], Yr == i)
@@ -163,9 +179,9 @@ turn_ss_out_to_data <- function(em_dat, flt = 1) {
        by = c("lbins" = "Lbin_lo"), keep = TRUE) %>%
          select(starts_with("a", ignore.case = FALSE)) %>%
          mutate(across(everything(), replace_na, 0))
-        
+
        full_matches$lencomp <- unname(t(lenrow[regmatches]))
- 
+
        #This matrix is number at age length with age as columns and length bins
        # as rows
       n_age_length <- full_matches %>%
@@ -177,17 +193,17 @@ turn_ss_out_to_data <- function(em_dat, flt = 1) {
       n_a_l_tibble <- bind_rows(n_a_l_tibble, n_age_length)
 
       #To turn this into l*a obs, have to make a fish for each N
-       
+
        #These are the rows of n_age_length for year i and fleet flt
        #that have a fish with the given age and size
       age_size_with_data <- n_age_length %>%
-       filter(if_any(starts_with("a"), ~ . > 0.5)) 
+       filter(if_any(starts_with("a"), ~ . > 0.5))
 
        for (r in 1:nrow(age_size_with_data)){
          ages_with_fish <- which(select(age_size_with_data[r,],
          starts_with("a")) > 0.5)
           for (a in ages_with_fish) {
-            addrow <- tibble(year = i, age = a, 
+            addrow <- tibble(year = i, age = a,
             length = age_size_with_data[r, "length"])
             #this is the number of fish of age a in year i of length
 
