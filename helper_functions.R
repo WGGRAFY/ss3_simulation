@@ -134,8 +134,11 @@ turn_ss_out_to_data_beta <- function(em_dat, flt = 1) {
   #Get CAAL by age
   caal_matrix_flt <- split(caal_matrix, caal_matrix$FltSvy)
 
-  out <- caal_matrix_flt[[flt]] %>% pivot_longer(data=., cols=10:ncol(asd), names_to="Age", names_prefix = "a", values_to = "frequency") %>%
-    filter(frequency>0) %>% uncount(frequency) %>% mutate(Age = as.numeric(Age))
+  out <- caal_matrix_flt[[flt]] %>% 
+  pivot_longer(data=., cols= starts_with("a", ignore.case = FALSE),
+  names_to="Age", names_prefix = "a", values_to = "frequency") %>%
+    filter(frequency>0) %>% uncount(frequency) %>% 
+    mutate(Age = as.numeric(Age))
 
   return(out)
 }
