@@ -47,7 +47,7 @@ ss3sim_dir <- paste0(substr(here(), 1, 32), "ss3sim")
     # 9. Level of fishing pressure (TODO)
     # 10. CV of survey index (TODO)
     df <- make_data_in(tv_Linf = "1")
-
+    df <- make_data_in(tv_Linf = "2", tv_k = "2")
 
     iterations <- 1
 
@@ -67,7 +67,7 @@ ss3sim_dir <- paste0(substr(here(), 1, 32), "ss3sim")
     }, error = unlink(df[, "scenarios"], recursive = TRUE)
     )
 
-    output_path <- file.path("om/D1-L1-A0-K0-M0-R0-F0-C0-pet", "1")
+    output_paths <- file.path("om",df[,"scenarios"])
 
     #Compare output OM and EM
     r_om <- r4ss::SS_output(here(output_path, "om"),
@@ -78,16 +78,14 @@ ss3sim_dir <- paste0(substr(here(), 1, 32), "ss3sim")
     r4ss::SS_plots(r_om)
 
     #EM data file has the simulated comps we need
-    em_dat <- r4ss::SS_readdat_3.30(here(output_path, "em/ss3.dat"))
-
-    #Function to turn length comps and CAAL comps to samples
-    Length_sims_1 <- turn_ss_out_to_data(em_dat, flt = 1)
-    Length_sims_2 <- turn_ss_out_to_data(em_dat, flt = 2)
+    em_dat <- r4ss::SS_readdat_3.30(here("om",df[1, "scenarios"], "1/em/ss3.dat"))
 
     # slightly modified version (much shortened)
-        Length_sims_1 <- turn_ss_out_to_data_beta(em_dat, flt = 1)
+    length_sims_monotonic_1 <- turn_ss_out_to_data_beta(em_dat, flt = 1)
+    length_sims_regime_2 <- turn_ss_out_to_data_beta(em_dat, flt = 2)
 
 
-    ggplot(Length_sims_1, aes(x=Age, y=Lbin_lo)) + facet_wrap(.~Yr) + geom_point() + theme_bw()
-
+    ggplot(length_sims_regime_2, aes(x = Age, y = Lbin_lo)) + 
+    facet_wrap(.~Yr) + geom_point() + theme_bw() + ylim(c(50,150))
+ggsave("linf_regime_flt2.png")
 
