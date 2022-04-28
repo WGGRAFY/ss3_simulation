@@ -78,10 +78,10 @@ make_data_in <- function(tv_k = "0",
   df[,"ct.L_at_Amax_Fem_GP_1"] <- switch(tv_Linf,
                             "0" = NULL,
                              #regime for L inf
-                             "1" = "L_at_Amax_Fem_GP_1 = c(rep(0,50),rep(2.8924,13),
-                            rep(3.0652,10),rep(1.1188,16),rep(-0.5686,11))",
+                             "1" = "L_at_Amax_Fem_GP_1 = c(rep(0,50),rep(5,13),
+                            rep(10,10),rep(5,16),rep(-5,11))",
                              #monotonic increase l2
-                             "2" = "L_at_Amax_Fem_GP_1 = seq(0,4,length.out=100)")
+                             "2" = "L_at_Amax_Fem_GP_1 = seq(0,15,length.out=100)")
 
   df[,"ct.VonBert_K_Fem_GP_1"] <- switch(tv_k,
                                          "0" = NULL, #Regime for k

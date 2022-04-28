@@ -67,7 +67,7 @@ ss3sim_dir <- paste0(substr(here(), 1, 32), "ss3sim")
     }, error = unlink(df[, "scenarios"], recursive = TRUE)
     )
 
-    output_paths <- file.path("om",df[,"scenarios"])
+    output_paths <- file.path("om", df[, "scenarios"])
 
     #Compare output OM and EM
     r_om <- r4ss::SS_output(here(output_path, "om"),
@@ -78,14 +78,14 @@ ss3sim_dir <- paste0(substr(here(), 1, 32), "ss3sim")
     r4ss::SS_plots(r_om)
 
     #EM data file has the simulated comps we need
-    em_dat <- r4ss::SS_readdat_3.30(here("om",df[1, "scenarios"], "1/em/ss3.dat"))
+    em_dat <- r4ss::SS_readdat_3.30(here(df[1, "scenarios"], "1/em/ss3.dat"))
 
     # slightly modified version (much shortened)
-    length_sims_monotonic_1 <- turn_ss_out_to_data_beta(em_dat, flt = 1)
-    length_sims_regime_2 <- turn_ss_out_to_data_beta(em_dat, flt = 2)
+    length_sims_monotonic_2 <- turn_ss_out_to_data_beta(em_dat, flt = 2)
+    length_sims_regime_big_2 <- turn_ss_out_to_data_beta(em_dat, flt = 2)
 
 
-    ggplot(length_sims_regime_2, aes(x = Age, y = Lbin_lo)) + 
+    ggplot(length_sims_regime_big_2, aes(x = Age, y = Lbin_lo)) + 
     facet_wrap(.~Yr) + geom_point() + theme_bw() + ylim(c(50,150))
-ggsave("linf_regime_flt2.png")
+ggsave("linf_regime_extreme_flt2.png")
 
