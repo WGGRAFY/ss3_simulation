@@ -81,7 +81,7 @@ make_data_in <- function(tv_k = "0",
                              "1" = "L_at_Amax_Fem_GP_1 = c(rep(0,50),rep(5,13),
                             rep(10,10),rep(5,16),rep(-5,11))",
                              #monotonic increase l2
-                             "2" = "L_at_Amax_Fem_GP_1 = seq(0,15,length.out=100)")
+                             "2" = "L_at_Amax_Fem_GP_1 = seq(0,-23.75,length.out=100)")
 
   df[,"ct.VonBert_K_Fem_GP_1"] <- switch(tv_k,
                                          "0" = NULL, #Regime for k
@@ -101,8 +101,8 @@ make_data_in <- function(tv_k = "0",
                               "1"=0.4)
   df[,"co.par_name"] <- "CV_old_Fem_GP_1"
   df[,"co.par_int"] <- switch(cvL,
-                              "0" = .035,
-                              "1" = .085)
+                              "0" = .1,
+                              "1" = .2)
 
 
   scname <- c(paste0("D1-L", tv_Linf,
